@@ -1,0 +1,85 @@
+# A rule consists of several actions
+# Each action will return True or False
+# A False response will terminate the rule
+# For simplicity, actions with side effects
+# such as say will have the side effects occur
+# immediately, even if the rule terminates early later
+
+import re
+
+class Action(object):
+    def __init__(self, action_type, params):
+        self.action_type = action_type
+        self.params = params
+
+    def _expand_string(self, s, env):
+        # Replace %(var) with the value of var in s
+        # Replaces %% with %
+        # Also unwraps the string from quotes if they exist
+        index = 0
+        result = ""
+        while index < len(s):
+            if s[index] == '%':
+                if s[index + 1] == '%':
+                    result += '%'
+                    index += 2
+                elif s[index + 1] == '(':
+                    r_index = s.index(')', index+2)
+                    var_name = s[index+2:r_index]
+                    result += str(env[var_name])
+                    index = r_index + 1
+                else:
+                    assert False, "Bad string expansion"
+            else:
+                result += s[index]
+                index += 1
+        if result[0] == '"' and result[-1] == '"':
+            result = result[1:-1]
+        return result
+
+    def _match(self, connection, env):
+        # match string, regex
+        params = self.params
+        assert len(params) == 2
+        s = self._expand_string(params[0], env)
+        r = self._expand_string(params[1], env)
+        print "Attempting to match %r with %r" % (s, r)
+        return bool(re.search(r, s))
+
+    def _say(self, connection, env):
+        # say message
+        # send a message to the channel from which
+        # the event came, which is in env["channel"]
+        params = self.params
+        msg = self._expand_string(params[0], env)
+        chan = env["channel"]
+        connection.privmsg(chan, msg)
+        print "Saying %r to %r" % (msg, chan)
+        return True
+
+    def execute(self, connection, env):
+        func = getattr(self, "_" + self.action_type, None)
+        return func and func(connection, env)
+
+class Rule(object):
+    def __init__(self):
+        self.name = ""
+        self.actions = []
+
+    def __init__(self, tokenized_lines):
+        self.name = ""
+        self.actions = []
+        for line in tokenized_lines:
+            if len(line) > 0:
+                if line[0] == 'rule':
+                    self.name = ' '.join(line[1:])
+                else:
+                    action = Action(line[0], [token for token in line[1:] if token != ','])
+                    self.actions.append(action)
+
+    def run(self, connection, env):
+        for action in self.actions:
+            if not action.execute(connection, env):
+                return False
+        print "Matched rule", self.name
+        return True
