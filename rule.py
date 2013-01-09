@@ -44,7 +44,12 @@ class Action(object):
         s = self._expand_string(params[0], env)
         r = self._expand_string(params[1], env)
         print "Attempting to match %r with %r" % (s, r)
-        return bool(re.search(r, s))
+        match = re.search(r, s)
+        if match:
+            env.update(match.groupdict())
+            return True
+        else:
+            return False
 
     def _say(self, connection, env):
         # say message
