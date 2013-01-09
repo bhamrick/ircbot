@@ -31,6 +31,12 @@ class MusselBot(irc.bot.SingleServerIRCBot):
         self.log_event(e)
         c.execute_delayed(1, c.join, (self.channel,))
 
+    def on_namreply(self, c, e):
+        self.log_event(e)
+
+    def on_endofnames(self, c, e):
+        self.log_event(e)
+
     def on_join(self, c, e):
         self.log_event(e)
 
@@ -39,6 +45,9 @@ class MusselBot(irc.bot.SingleServerIRCBot):
         self.env["user"] = e.source.split("!", 1)[0]
         self.env["channel"] = e.target
         self.env["message"] = e.arguments[0]
+        self.env["ch_names"] = self.channels[e.target].userdict
+        self.env["ch_ops"] = self.channels[e.target].operdict
+        self.env["ch_voiced"] = self.channels[e.target].voiceddict
         for rule in self.rules:
             rule.run(c, self.env)
 

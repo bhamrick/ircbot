@@ -23,7 +23,8 @@ class BotConfig(object):
     def _scan_keyword(self, line, index):
         token = ''
         while index < len(line) and ((line[index] >= 'a' and line[index] <= 'z')
-                                  or (line[index] >= 'A' and line[index] <= 'Z')):
+                                  or (line[index] >= 'A' and line[index] <= 'Z')
+                                  or line[index] in '_'):
             token += line[index]
             index += 1
         return token

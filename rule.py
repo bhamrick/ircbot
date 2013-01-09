@@ -57,6 +57,29 @@ class Action(object):
         print "Saying %r to %r" % (msg, chan)
         return True
 
+    def _require_mode(self, connection, env):
+        # Checks that the sender has the specified modes
+        # Example: require_mode +o requires that the user is an op
+        # require_mode -o requires that they are not an op
+        # require_mode -ov requires that they are neither op nor voiced
+        params = self.params
+        print "Checking for modes", params[0]
+        ch = env["channel"]
+        user = env["user"]
+        require_in = True
+        for c in params[0]:
+            if c == '+':
+                require_in = True
+            elif c == '-':
+                require_in = False
+            elif c == 'o':
+                if require_in != (user in env["ch_ops"]):
+                    return False
+            elif c == 'v':
+                if require_in != (user in env["ch_voiced"]):
+                    return False
+        return True
+
     def execute(self, connection, env):
         func = getattr(self, "_" + self.action_type, None)
         return func and func(connection, env)
