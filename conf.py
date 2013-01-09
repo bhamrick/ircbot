@@ -35,6 +35,13 @@ class BotConfig(object):
         r_index = line.index('"', index+1)
         return line[index : r_index + 1]
 
+    def _scan_numeral(self, line, index):
+        token = ''
+        while index < len(line) and line[index] in '0123456789.':
+            token += line[index]
+            index += 1
+        return token
+
     def tokenize(self, line):
         tokens = []
 
@@ -51,6 +58,10 @@ class BotConfig(object):
                 index += len(token)
             elif line[index] == '"':
                 token = self._scan_string(line, index)
+                tokens.append(token)
+                index += len(token)
+            elif line[index] in '0123456789.':
+                token = self._scan_numeral(line, index)
                 tokens.append(token)
                 index += len(token)
             else:

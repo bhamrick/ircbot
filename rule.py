@@ -6,11 +6,14 @@
 # immediately, even if the rule terminates early later
 
 import re
+import time
 
 class Action(object):
     def __init__(self, action_type, params):
         self.action_type = action_type
         self.params = params
+        # Used for global rate limiting
+        self.last_time = 0
 
     def _expand_string(self, s, env):
         # Replace %(var) with the value of var in s
@@ -26,7 +29,7 @@ class Action(object):
                 elif s[index + 1] == '(':
                     r_index = s.index(')', index+2)
                     var_name = s[index+2:r_index]
-                    result += str(env[var_name])
+                    result += str(env.get(var_name,""))
                     index = r_index + 1
                 else:
                     assert False, "Bad string expansion"
@@ -83,6 +86,25 @@ class Action(object):
             elif c == 'v':
                 if require_in != (user in env["ch_voiced"]):
                     return False
+        return True
+
+    def _global_rate_limit(self, connection, env):
+        # Refuse to execute more than once in params[0] seconds
+        params = self.params
+        delta = float(params[0])
+        curtime = time.time()
+        if curtime - self.last_time > delta:
+            self.last_time = curtime
+            return True
+        return False
+
+    def _set(self, connection, env):
+        params = self.params
+        varname = params[0]
+        if varname[0] == '%' and varname[1] == '(' and varname[-1] == ')':
+            varname = varname[2:-1]
+        value = self._expand_string(params[1], env)
+        env[varname] = value
         return True
 
     def execute(self, connection, env):
