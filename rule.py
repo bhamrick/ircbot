@@ -14,6 +14,8 @@ class Action(object):
         self.params = params
         # Used for global rate limiting
         self.last_time = 0
+        # individual rate limiting
+        self.indv_rate = {}
 
     def _expand_string(self, s, env):
         # Replace %(var) with the value of var in s
@@ -103,15 +105,15 @@ class Action(object):
         params = self.params
         delta = float(params[0])
         curtime = time.time()
-        if self.env["user"] not in self.indv_rate: #if user is new, allow and add time
-            self.indv_rate[self.env["user"]] = curtime
+        if env["user"] not in self.indv_rate: #if user is new, allow and add time
+            self.indv_rate[env["user"]] = curtime
             return True
         #if (curtime - self.last_time > delta):
-        elif (self.env["user"] in self.indv_rate) and #if user has history and it's been long enough, allow and update time
-             (curtime - self.indv_rate[self.env["user"]] > delta): 
-            self.indv_rate[self.env["user"]] = curtime
+        elif ((env["user"] in self.indv_rate) and #if user has history and it's been long enough, allow and update time
+             (curtime - self.indv_rate[env["user"]] > delta)): 
+            self.indv_rate[env["user"]] = curtime
             return True
-        else
+        else:
             return False
 
 
