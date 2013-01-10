@@ -98,6 +98,23 @@ class Action(object):
             return True
         return False
 
+    def _individual_rate_limit(self, connection, env):
+        # Refuse to execute more than once in params[0] seconds for any given individual
+        params = self.params
+        delta = float(params[0])
+        curtime = time.time()
+        if self.env["user"] not in self.indv_rate: #if user is new, allow and add time
+            self.indv_rate[self.env["user"]] = curtime
+            return True
+        #if (curtime - self.last_time > delta):
+        elif (self.env["user"] in self.indv_rate) and #if user has history and it's been long enough, allow and update time
+             (curtime - self.indv_rate[self.env["user"]] > delta): 
+            self.indv_rate[self.env["user"]] = curtime
+            return True
+        else
+            return False
+
+
     def _set(self, connection, env):
         params = self.params
         varname = params[0]
